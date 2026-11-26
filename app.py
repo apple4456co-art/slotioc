@@ -164,7 +164,7 @@ class AutoPilot(tk.Tk):
     def _build_ui(self):
         header = ttk.Frame(self); header.pack(fill="x", padx=18, pady=(14, 5))
         ttk.Label(header, text="SHOPEE AFFILIATE AUTOPILOT", style="Title.TLabel").pack(side="left")
-        ttk.Label(header, text="EXTRA COMM ONLY  •  30 งาน/วัน  •  Local database", style="Sub.TLabel").pack(side="right")
+        ttk.Label(header, text="EXTRA COMM ONLY  •  PC + ANDROID  •  LAN MOBILE HUB", style="Sub.TLabel").pack(side="right")
         warning = ttk.Label(self, text="โหมด Assisted: ไม่ scrape / ไม่เก็บรหัสผ่าน / ไม่ควบคุม Meta หรือ Shopee แทนคุณ • หลักฐาน Extra Comm ต้องตรวจจาก Shopee ก่อนใช้จริง", wraplength=1260, foreground="#f3c969")
         warning.pack(fill="x", padx=20, pady=(0, 10))
         self.tabs = ttk.Notebook(self); self.tabs.pack(fill="both", expand=True, padx=16, pady=8)
