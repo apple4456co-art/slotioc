@@ -15,6 +15,7 @@ PORT=int(os.environ.get("SHOPEE_HUB_PORT","8765"))
 MAX_UPLOAD=int(os.environ.get("SHOPEE_HUB_MAX_UPLOAD",str(500*1024*1024)))
 TTL=12*60*60
 SESSIONS={}
+LOGIN_ATTEMPTS={}
 LOCK=threading.Lock()
 SCHEMA="""
 PRAGMA foreign_keys=ON;
@@ -168,7 +169,14 @@ class Handler(BaseHTTPRequestHandler):
   if path=="/login":
    try:pin=str(self.read_json().get("pin",""))
    except Exception:return self.reply(400,{"ok":False,"error":"ข้อมูลไม่ถูกต้อง"})
-   if len(pin)!=8 or not pin.isdigit() or not verify(pin):time.sleep(.4);return self.reply(401,{"ok":False,"error":"PIN ไม่ถูกต้อง"})
+   ip=self.client_address[0];ts=time.time()
+   with LOCK:
+    attempts=[t for t in LOGIN_ATTEMPTS.get(ip,[]) if ts-t<300]
+    if len(attempts)>=8:return self.reply(429,{"ok":False,"error":"ลอง PIN ผิดหลายครั้ง กรุณารอ 5 นาที"})
+   if len(pin)!=8 or not pin.isdigit() or not verify(pin):
+    with LOCK:LOGIN_ATTEMPTS[ip]=attempts+[ts]
+    time.sleep(.5);return self.reply(401,{"ok":False,"error":"PIN ไม่ถูกต้อง"})
+   with LOCK:LOGIN_ATTEMPTS.pop(ip,None)
    token=secrets.token_urlsafe(32);csrf=secrets.token_urlsafe(24)
    with LOCK:SESSIONS[token]=(time.time()+TTL,csrf)
    return self.reply(200,{"ok":True},headers={"Set-Cookie":f"affiliate_hub={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age={TTL}"})
