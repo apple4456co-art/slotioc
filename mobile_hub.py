@@ -149,7 +149,19 @@ class Handler(BaseHTTPRequestHandler):
    with connect() as c:r=c.execute("select video_path from jobs where id=?",(jid,)).fetchone()
    p=media_path(r["video_path"] if r else None)
    if not p:return self.reply(404,{"error":"ไม่พบวิดีโอ"})
-   return self.reply(200,p.read_bytes(),mimetypes.guess_type(p.name)[0] or "application/octet-stream",{"Content-Disposition":"attachment; filename="+p.name})
+   self.send_response(200)
+   self.send_header("Content-Type",mimetypes.guess_type(p.name)[0] or "application/octet-stream")
+   self.send_header("Content-Length",str(p.stat().st_size))
+   self.send_header("Content-Disposition",f'attachment; filename="{p.name}"')
+   self.send_header("X-Content-Type-Options","nosniff")
+   self.send_header("Cache-Control","no-store")
+   self.end_headers()
+   with p.open("rb") as fh:
+    while True:
+     chunk=fh.read(1024*1024)
+     if not chunk:break
+     self.wfile.write(chunk)
+   return
   return self.reply(404,{"error":"ไม่พบหน้า"})
  def do_POST(self):
   path=urllib.parse.urlsplit(self.path).path
