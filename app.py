@@ -18,7 +18,7 @@ import webbrowser
 from datetime import date, datetime
 from pathlib import Path
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox, simpledialog
 
 APP_DIR = Path(__file__).resolve().parent
 DB_PATH = APP_DIR / "affiliate_autopilot.db"
@@ -188,7 +188,7 @@ class AutoPilot(tk.Tk):
         actions = ttk.Frame(f); actions.pack(fill="x", padx=20, pady=8)
         ttk.Button(actions, text="เปิด Shopee Affiliate", command=lambda: webbrowser.open(SHOPEE_DASHBOARD)).pack(side="left", padx=4)
         ttk.Button(actions, text="เปิด Meta AI", command=lambda: webbrowser.open(META_AI_URL)).pack(side="left", padx=4)
-        ttk.Button(actions, text="สร้างคิววันนี้ 30 งาน", command=self.generate_daily).pack(side="left", padx=4)
+        ttk.Button(actions, text="สร้างคิววันนี้ (กำหนดจำนวน)", command=self.generate_daily).pack(side="left", padx=4)
         ttk.Button(actions, text="นำเข้า CSV", command=self.import_csv).pack(side="left", padx=4)
         ttk.Button(actions, text="สำรองฐานข้อมูล", command=self.backup).pack(side="left", padx=4)
         ttk.Label(f, text="งานล่าสุด", font=("Segoe UI", 12, "bold")).pack(anchor="w", padx=20, pady=(14, 5))
@@ -266,13 +266,13 @@ class AutoPilot(tk.Tk):
             "• เก็บสินค้าและงานใน SQLite บนเครื่อง\n"
             "• บังคับให้มีข้อมูลหลักฐาน Extra Comm และลิงก์ Affiliate ก่อนบันทึกสินค้า\n"
             "• สร้างร่างบท แคปชัน Hashtag และ Prompt แบบอัตโนมัติจากข้อมูลที่กรอก\n"
-            "• สร้างคิวสูงสุด 30 งาน/วัน, แนบวิดีโอ, สร้างชุดโพสต์, ส่งออก CSV และสำรองฐานข้อมูล\n\n"
+            "• สร้างคิวได้ตามจำนวนที่กำหนด ไม่จำกัด 30 งาน/วัน, แนบวิดีโอ, สร้างชุดโพสต์, ส่งออก CSV และสำรองฐานข้อมูล\n\n"
             "ข้อจำกัดที่ต้องทราบ\n"
             "• การกรอกหลักฐานในโปรแกรมไม่ใช่การตรวจสอบ Extra Comm แบบสดจาก Shopee ต้องตรวจป้าย/อัตรา/ช่วงเวลาใน Shopee ก่อนทุกครั้ง\n"
             "• โปรแกรมนี้ไม่มี Shopee Open API และไม่ scrape ข้อมูล Shopee\n"
             "• โปรแกรมไม่สามารถสั่ง Meta AI สร้างวิดีโอผ่าน API ที่ยืนยันว่าเปิดให้สมาชิกทั่วไปใช้ได้\n"
             "• โปรแกรมไม่สามารถโพสต์ Shopee Video หรือแนบสินค้าแทนผู้ใช้ได้โดยตรง\n"
-            "• 30 งานคือเป้าหมายคิวผลิต ไม่ใช่การรับประกันว่าจะสร้าง/โพสต์ได้ 30 คลิปจริง\n"
+            "• จำนวนคิวเป็นแผนการผลิต ไม่ใช่การรับประกันว่าจะสร้าง/โพสต์ได้ครบทุกคลิป\n"
             "• ตรวจสอบข้อความและข้อกล่าวอ้างทั้งหมดก่อนเผยแพร่\n\n"
             f"Shopee Affiliate: {SHOPEE_DASHBOARD}\nMeta AI: {META_AI_URL}\n"
         )
@@ -328,28 +328,29 @@ class AutoPilot(tk.Tk):
         products = self.con.execute("SELECT * FROM products WHERE active=1 ORDER BY checked_date DESC, id DESC").fetchall()
         if not products:
             messagebox.showwarning("ยังไม่มีสินค้า", "เพิ่มหรือนำเข้าสินค้าที่มีหลักฐาน Extra Comm และ Affiliate Link ก่อน"); return
+        quantity = simpledialog.askinteger("สร้างคิววันนี้", "ต้องการสร้างงานกี่รายการ?", parent=self, initialvalue=30, minvalue=1, maxvalue=1000)
+        if quantity is None: return
         existing = self.con.execute("SELECT COUNT(*) n FROM jobs WHERE work_date=?", (today,)).fetchone()["n"]
-        remaining = max(0, 30 - existing)
-        if remaining == 0:
-            messagebox.showinfo("ครบโควตาคิววันนี้", "วันนี้มีงานครบ 30 งานแล้ว"); return
-        for i in range(remaining):
-            product = products[i % len(products)]
+        for i in range(quantity):
+            product = products[(existing + i) % len(products)]
             self._create_job(product, today, existing + i)
         self.con.commit(); self.refresh_all(); self.tabs.select(self.tab_jobs)
-        reused = max(0, remaining - len(products))
-        msg = f"สร้างคิวเพิ่ม {remaining} งาน รวมวันนี้ {existing + remaining}/30 งาน"
-        if reused: msg += f"\nหมายเหตุ: มีสินค้า {len(products)} รายการ จึงต้องใช้สินค้าซ้ำ {reused} งาน โปรดหลีกเลี่ยงการโพสต์ซ้ำหรือเนื้อหาซ้ำ"
+        reused = max(0, quantity - len(products))
+        msg = f"สร้างคิวเพิ่ม {quantity} งาน วันนี้มีทั้งหมด {existing + quantity} งาน"
+        if reused: msg += f"\\nมีสินค้า {len(products)} รายการ จึงมีการหมุนใช้สินค้าซ้ำ โปรดปรับเนื้อหาและหลีกเลี่ยงการโพสต์ซ้ำ"
         messagebox.showinfo("สร้างคิวแล้ว", msg)
 
     def generate_selected(self):
         product = self._selected_product()
         if not product:
             messagebox.showwarning("เลือกสินค้า", "เลือกสินค้าในแท็บสินค้า Extra Comm ก่อน"); return
+        quantity = simpledialog.askinteger("สร้างงานจากสินค้าที่เลือก", "ต้องการสร้างงานจากสินค้านี้กี่รายการ?", parent=self, initialvalue=1, minvalue=1, maxvalue=1000)
+        if quantity is None: return
         today = date.today().isoformat()
         count = self.con.execute("SELECT COUNT(*) n FROM jobs WHERE work_date=?", (today,)).fetchone()["n"]
-        if count >= 30:
-            messagebox.showwarning("ครบ 30 งานแล้ว", "ลบหรือเลื่อนงานก่อนสร้างเพิ่ม"); return
-        self._create_job(product, today, count); self.con.commit(); self.refresh_all(); self.tabs.select(self.tab_jobs)
+        for i in range(quantity):
+            self._create_job(product, today, count + i)
+        self.con.commit(); self.refresh_all(); self.tabs.select(self.tab_jobs)
 
     def import_csv(self):
         path = filedialog.askopenfilename(title="เลือก CSV สินค้า", filetypes=[("CSV", "*.csv"), ("All files", "*.*")])
