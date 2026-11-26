@@ -9,7 +9,7 @@ SHOPEE AFFILIATE AUTOPILOT — EXTRA COMM EDITION
 - บังคับกรอกหลักฐาน Extra Comm, รายละเอียดค่าตอบแทน และ Affiliate Link
 - ตรวจรูปแบบ Affiliate Link ว่าเป็น https://s.shopee.co.th/...
 - นำเข้า/ส่งออก CSV และป้องกัน Affiliate Link ซ้ำ
-- สร้างคิวงานและสลับรูปแบบคอนเทนต์
+- กำหนดจำนวนคิวต่อรอบได้ 1–1,000 งาน และสร้างซ้ำได้โดยไม่จำกัดจำนวนรวม พร้อมสลับรูปแบบคอนเทนต์
 - สร้างร่างบทรีวิว แคปชัน Hashtag และ Prompt สำหรับ Meta AI
 - เปิด Meta AI และคัดลอก Prompt จากหน้าโปรแกรม
 - แนบวิดีโอที่ดาวน์โหลดจาก Meta AI และเก็บสำเนาไว้ใน media/
